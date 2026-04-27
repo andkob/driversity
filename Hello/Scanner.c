@@ -262,7 +262,13 @@ static int open(struct inode *inode, struct file *filp) {
    * later through filp->private_data.
    */
   filp->private_data=file;
-  printk(KERN_INFO "%s: open\n",DEVNAME);
+  printk(KERN_INFO
+      "%s: open data_len=%zu separators_len=%zu cursor=%zu token_active=%d\n",
+      DEVNAME,
+      file->data_len,
+      file->separators_len,
+      file->cursor,
+      file->token_active);
   return 0;
 }
 
@@ -272,7 +278,14 @@ static int release(struct inode *inode, struct file *filp) {
   * Free anything allocated in open() for this file instance.
   */
   File *file=filp->private_data;
-  printk(KERN_INFO "%s: release\n",DEVNAME);
+  printk(KERN_INFO
+      "%s: release data_len=%zu separators_len=%zu cursor=%zu token_active=%d pending_token_end=%d\n",
+      DEVNAME,
+      file->data_len,
+      file->separators_len,
+      file->cursor,
+      file->token_active,
+      file->pending_token_end);
   destroy_file_state(file);
   kfree(file);
   return 0;
@@ -296,6 +309,17 @@ static ssize_t read(struct file *filp,
   if (count==0)
     return 0;
 
+  printk(KERN_INFO
+      "%s: read enter count=%zu data_len=%zu cursor=%zu token_active=%d token_cursor=%zu token_end=%zu pending_token_end=%d\n",
+      DEVNAME,
+      count,
+      file->data_len,
+      file->cursor,
+      file->token_active,
+      file->token_cursor,
+      file->token_end,
+      file->pending_token_end);
+
   tmp=(unsigned char *)kmalloc(count,GFP_KERNEL);
   if (!tmp) {
     printk(KERN_ERR "%s: kmalloc() failed\n",DEVNAME);
@@ -304,7 +328,17 @@ static ssize_t read(struct file *filp,
 
   n=read_token_chunk(file,tmp,count);
   if (n<=0) {
-    printk(KERN_INFO "%s: read count=%zu result=%zd\n",DEVNAME,count,n);
+    printk(KERN_INFO
+        "%s: read exit count=%zu result=%zd data_len=%zu cursor=%zu token_active=%d token_cursor=%zu token_end=%zu pending_token_end=%d\n",
+        DEVNAME,
+        count,
+        n,
+        file->data_len,
+        file->cursor,
+        file->token_active,
+        file->token_cursor,
+        file->token_end,
+        file->pending_token_end);
     kfree(tmp);
     return n;
   }
@@ -315,7 +349,17 @@ static ssize_t read(struct file *filp,
     return -EFAULT;
   }
   kfree(tmp);
-  printk(KERN_INFO "%s: read count=%zu result=%zd\n",DEVNAME,count,n);
+  printk(KERN_INFO
+      "%s: read exit count=%zu result=%zd data_len=%zu cursor=%zu token_active=%d token_cursor=%zu token_end=%zu pending_token_end=%d\n",
+      DEVNAME,
+      count,
+      n,
+      file->data_len,
+      file->cursor,
+      file->token_active,
+      file->token_cursor,
+      file->token_end,
+      file->pending_token_end);
 
   /* read_token_chunk() owns the token/end-of-token/end-of-data contract. */
   return n;
@@ -330,10 +374,15 @@ static ssize_t write(struct file *filp,
   int err;
   (void)f_pos;
 
-  printk(KERN_INFO "%s: write count=%zu mode=%s\n",
+  printk(KERN_INFO
+      "%s: write enter count=%zu mode=%s data_len=%zu separators_len=%zu cursor=%zu token_active=%d\n",
       DEVNAME,
       count,
-      (file->next_write_sets_separators ? "separators" : "data"));
+      (file->next_write_sets_separators ? "separators" : "data"),
+      file->data_len,
+      file->separators_len,
+      file->cursor,
+      file->token_active);
 
   if (count>0) {
     tmp=(unsigned char *)kmalloc(count,GFP_KERNEL);
@@ -356,6 +405,14 @@ static ssize_t write(struct file *filp,
       printk(KERN_ERR "%s: set_separators() failed\n",DEVNAME);
       return err;
     }
+    printk(KERN_INFO
+        "%s: write exit mode=separators count=%zu data_len=%zu separators_len=%zu cursor=%zu token_active=%d\n",
+        DEVNAME,
+        count,
+        file->data_len,
+        file->separators_len,
+        file->cursor,
+        file->token_active);
   } else {
     err=set_data(file,tmp,count);
     if (err) {
@@ -363,6 +420,14 @@ static ssize_t write(struct file *filp,
       printk(KERN_ERR "%s: set_data() failed\n",DEVNAME);
       return err;
     }
+    printk(KERN_INFO
+        "%s: write exit mode=data count=%zu data_len=%zu separators_len=%zu cursor=%zu token_active=%d\n",
+        DEVNAME,
+        count,
+        file->data_len,
+        file->separators_len,
+        file->cursor,
+        file->token_active);
   }
 
   kfree(tmp);
@@ -388,8 +453,14 @@ static long ioctl(struct file *filp,
     return -EINVAL;
 
   file->next_write_sets_separators=1;
-  printk(KERN_INFO "%s: ioctl cmd=%u arg=%lu -> next write sets separators\n",
-      DEVNAME,cmd,arg);
+  printk(KERN_INFO
+      "%s: ioctl cmd=%u arg=%lu next_write_sets_separators=%d data_len=%zu separators_len=%zu\n",
+      DEVNAME,
+      cmd,
+      arg,
+      file->next_write_sets_separators,
+      file->data_len,
+      file->separators_len);
   return 0;
 }
 

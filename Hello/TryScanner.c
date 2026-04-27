@@ -1,7 +1,11 @@
-#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
 
 #define ERR(s) err(s,__FILE__,__LINE__)
 
@@ -11,15 +15,36 @@ static void err(char *s, char *file, int line) {
 }
 
 int main() {
-  int fd=open("/dev/Scanner",O_RDWR);
-  if (fd<0)
+  enum {max=100};
+  char buf[max+1];
+  char *line=NULL;
+  size_t cap=0;
+  ssize_t line_len;
+  ssize_t len;
+
+  int scanner=open("/dev/Scanner",O_RDWR);
+  if (scanner<0)
     ERR("open() failed");
-  enum { size=100 };
-  char buf[size];
-  for (int len; (len=read(fd,buf,size));) {
-    buf[len]=0;
-    printf("%s",buf);
+
+  if (ioctl(scanner,0,0))
+    ERR("ioctl() for separators failed");
+  if (write(scanner,":",1)!=1)
+    ERR("write() of separators failed");
+
+  while ((line_len=getline(&line,&cap,stdin))!=-1) {
+    if (line_len>0 && line[line_len-1]=='\n')
+      line[--line_len]=0;
+
+    len=line_len;
+    if (len!=write(scanner,line,len))
+      ERR("write() of data failed");
+    while ((len=read(scanner,buf,max))>=0) {
+      buf[len]=0;
+      printf("%s%s",buf,(len ? "" : "\n"));
+    }
   }
-  close(fd);
+
+  free(line);
+  close(scanner);
   return 0;
 }

@@ -19,7 +19,10 @@ static void err(char *s, char *file, int line) {
 int main() {
   enum {max=100};
   char buf[max+1];
-  int len;
+  char *line=NULL;
+  size_t cap=0;
+  ssize_t line_len;
+  ssize_t len;
 
   int scanner=open("/dev/Scanner",O_RDWR);
   if (scanner<0)
@@ -30,17 +33,20 @@ int main() {
   if (write(scanner,":",1)!=1)
     ERR("write() of separators failed");
 
-  for (char *line; scanf("%m[^\n]\n",&line)!=EOF;) {
-    len=strlen(line);
+  while ((line_len=getline(&line,&cap,stdin))!=-1) {
+    if (line_len>0 && line[line_len-1]=='\n')
+      line[--line_len]=0;
+
+    len=line_len;
     if (len!=write(scanner,line,len))
       ERR("write() of data failed");
-    free(line);
     while ((len=read(scanner,buf,max))>=0) {
       buf[len]=0;
       printf("%s%s",buf,(len ? "" : "\n"));
     }
   }
 
+  free(line);
   close(scanner);
   return 0;
 }
