@@ -47,41 +47,15 @@
  * - cdev_del()
  */
 #include <linux/cdev.h>
+#include "Scanner.h"
 
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("BSU CS 452 HW5");
 MODULE_AUTHOR("<buff@cs.boisestate.edu>");
 
-static const unsigned char default_separators[]={
+const unsigned char default_separators[]={
   ' ','\t','\n','\r','\f','\v'
 };
-
-typedef struct {
-  /* Kernel-assigned device number: major + minor packed together. */
-  dev_t devno;
-  /* Embedded character-device object registered with the kernel. */
-  struct cdev cdev;
-} Device;			/* per-init() data */
-
-typedef struct {
-  /* Fast byte-membership table for separator checks. */
-  unsigned char separator_map[256];
-  /* Active separator set for this open file. */
-  unsigned char *separators;
-  size_t separators_len;
-  /* Current data buffer being tokenized for this open file. */
-  unsigned char *data;
-  size_t data_len;
-  /* Tokenization progress state. */
-  size_t cursor;
-  size_t token_start;
-  size_t token_end;
-  size_t token_cursor;
-  int token_active;
-  int pending_token_end;
-  /* ioctl() will use this to make the next write set separators. */
-  int next_write_sets_separators;
-} File;				/* per-open() data */
 
 /* Single global device instance for this module. */
 static Device device;
@@ -90,6 +64,7 @@ static void reset_separator_map(File *file) {
   size_t i;
 
   memset(file->separator_map,0,sizeof(file->separator_map));
+  // Mark each active separator byte for O(1) membership checks during scans.
   for (i=0; i<file->separators_len; i++)
     file->separator_map[file->separators[i]]=1;
 }
@@ -104,6 +79,7 @@ static int replace_buffer(unsigned char **dst,
     copy=(unsigned char *)kmalloc(len,GFP_KERNEL);
     if (!copy)
       return -ENOMEM;
+    // Keep kernel-owned copies so later reads do not depend on user memory.
     memcpy(copy,src,len);
   }
 
@@ -114,6 +90,7 @@ static int replace_buffer(unsigned char **dst,
 }
 
 static void reset_scan_state(File *file) {
+  // A fresh data write always restarts tokenization from the beginning.
   file->cursor=0;
   file->token_start=0;
   file->token_end=0;
@@ -155,6 +132,7 @@ static int set_data(File *file,
 }
 
 static void start_next_token(File *file) {
+  // Skip leading separators until we either find token data or hit end-of-data.
   while (file->cursor<file->data_len &&
       file->separator_map[file->data[file->cursor]])
     file->cursor++;
@@ -165,6 +143,7 @@ static void start_next_token(File *file) {
   }
 
   file->token_start=file->cursor;
+  // Advance until the next separator to capture one whole token span.
   while (file->cursor<file->data_len &&
       !file->separator_map[file->data[file->cursor]])
     file->cursor++;
@@ -184,18 +163,15 @@ static ssize_t read_token_chunk(File *file,
   if (count==0)
     return 0;
 
-  /*
-   * The scanner contract is:
-   * >0 for token bytes
-   *  0 for end-of-token
-   * -1 for end-of-data
-   */
+  // The scanner contract is: >0 for token bytes, 0 for end-of-token, -1 for end-of-data.
   if (file->pending_token_end) {
+    // Emit the delayed end-of-token marker immediately after a token finishes.
     file->pending_token_end=0;
     return 0;
   }
 
   if (!file->token_active) {
+    // No token is active, so scan forward to the next token boundary pair.
     start_next_token(file);
     if (!file->token_active)
       return -1;
@@ -205,15 +181,18 @@ static ssize_t read_token_chunk(File *file,
   chunk=(remaining<count ? remaining : count);
 
   if (chunk>0) {
+    // Copy out the next contiguous slice of the current token.
     memcpy(out,file->data+file->token_cursor,chunk);
     file->token_cursor+=chunk;
     if (file->token_cursor==file->token_end) {
+      // The next read after the last byte must report end-of-token.
       file->token_active=0;
       file->pending_token_end=1;
     }
     return chunk;
   }
 
+  // A zero-sized remainder still means we owe the caller an end-of-token.
   file->token_active=0;
   file->pending_token_end=1;
   return 0;
@@ -398,6 +377,7 @@ static ssize_t write(struct file *filp,
   }
 
   if (file->next_write_sets_separators) {
+    // ioctl(cmd=0,arg=0) makes exactly one subsequent write replace separators.
     err=set_separators(file,tmp,count);
     file->next_write_sets_separators=0;
     if (err) {
@@ -414,6 +394,7 @@ static ssize_t write(struct file *filp,
         file->cursor,
         file->token_active);
   } else {
+    // Ordinary writes replace the current input data buffer.
     err=set_data(file,tmp,count);
     if (err) {
       kfree(tmp);

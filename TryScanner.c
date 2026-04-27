@@ -33,6 +33,8 @@ int main() {
   if (write(scanner,":",1)!=1)
     ERR("write() of separators failed");
 
+  printf("input> ");
+  fflush(stdout);
   while ((line_len=getline(&line,&cap,stdin))!=-1) {
     if (line_len>0 && line[line_len-1]=='\n')
       line[--line_len]=0;
@@ -44,6 +46,8 @@ int main() {
       buf[len]=0;
       printf("%s%s",buf,(len ? "" : "\n"));
     }
+    printf("input> ");
+    fflush(stdout);
   }
 
   free(line);
