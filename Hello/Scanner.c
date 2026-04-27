@@ -262,6 +262,7 @@ static int open(struct inode *inode, struct file *filp) {
    * later through filp->private_data.
    */
   filp->private_data=file;
+  printk(KERN_INFO "%s: open\n",DEVNAME);
   return 0;
 }
 
@@ -271,6 +272,7 @@ static int release(struct inode *inode, struct file *filp) {
   * Free anything allocated in open() for this file instance.
   */
   File *file=filp->private_data;
+  printk(KERN_INFO "%s: release\n",DEVNAME);
   destroy_file_state(file);
   kfree(file);
   return 0;
@@ -302,6 +304,7 @@ static ssize_t read(struct file *filp,
 
   n=read_token_chunk(file,tmp,count);
   if (n<=0) {
+    printk(KERN_INFO "%s: read count=%zu result=%zd\n",DEVNAME,count,n);
     kfree(tmp);
     return n;
   }
@@ -312,6 +315,7 @@ static ssize_t read(struct file *filp,
     return -EFAULT;
   }
   kfree(tmp);
+  printk(KERN_INFO "%s: read count=%zu result=%zd\n",DEVNAME,count,n);
 
   /* read_token_chunk() owns the token/end-of-token/end-of-data contract. */
   return n;
@@ -325,6 +329,11 @@ static ssize_t write(struct file *filp,
   unsigned char *tmp=NULL;
   int err;
   (void)f_pos;
+
+  printk(KERN_INFO "%s: write count=%zu mode=%s\n",
+      DEVNAME,
+      count,
+      (file->next_write_sets_separators ? "separators" : "data"));
 
   if (count>0) {
     tmp=(unsigned char *)kmalloc(count,GFP_KERNEL);
@@ -379,6 +388,8 @@ static long ioctl(struct file *filp,
     return -EINVAL;
 
   file->next_write_sets_separators=1;
+  printk(KERN_INFO "%s: ioctl cmd=%u arg=%lu -> next write sets separators\n",
+      DEVNAME,cmd,arg);
   return 0;
 }
 
