@@ -1,6 +1,6 @@
 PATH=/usr/bin:/bin:/sbin
 
-name:=Hello
+name:=Scanner
 module:=$(name).ko
 
 obj-m:=$(name).o
@@ -21,8 +21,8 @@ uninstall:
 	sudo rmmod $(module) || true
 	sudo rm -f /dev/$(name) || true
 
-TryHello: TryHello.c
+TryScanner: TryScanner.c
 	gcc -o $@ $< -Wall -g
 
-try: TryHello
+try: TryScanner
 	./$<

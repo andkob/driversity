@@ -11,7 +11,7 @@ static void err(char *s, char *file, int line) {
 }
 
 int main() {
-  int fd=open("/dev/Hello",O_RDWR);
+  int fd=open("/dev/Scanner",O_RDWR);
   if (fd<0)
     ERR("open() failed");
   enum { size=100 };
