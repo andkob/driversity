@@ -1,0 +1,114 @@
+Script started on 2026-04-27 18:26:50-06:00 [TERM="xterm-256color" TTY="/dev/pts/0" COLUMNS="140" LINES="39"]
+[?2004h]0;idiot@punching-bag: ~/os/driversity/Hello[01;32midiot@punching-bag[00m:[01;34m~/os/driversity/Hello[00m$ make
+[?2004lmake -C /lib/modules/6.12.74+deb13+1-amd64/build M=/home/idiot/os/driversity/Hello modules
+make[1]: Entering directory '/usr/src/linux-headers-6.12.74+deb13+1-amd64'
+  CC [M]  /home/idiot/os/driversity/Hello/Scanner.o
+  MODPOST /home/idiot/os/driversity/Hello/Module.symvers
+  CC [M]  /home/idiot/os/driversity/Hello/Scanner.mod.o
+  CC [M]  /home/idiot/os/driversity/Hello/.module-common.o
+  LD [M]  /home/idiot/os/driversity/Hello/Scanner.ko
+  BTF [M] /home/idiot/os/driversity/Hello/Scanner.ko
+make[1]: Leaving directory '/usr/src/linux-headers-6.12.74+deb13+1-amd64'
+[?2004h]0;idiot@punching-bag: ~/os/driversity/Hello[01;32midiot@punching-bag[00m:[01;34m~/os/driversity/Hello[00m$ make install
+[?2004lsudo rmmod Scanner.ko || true
+[sudo] password for idiot: 
+sudo insmod Scanner.ko
+sudo rm -f /dev/Scanner || true
+sudo mknod -m a+rw /dev/Scanner c $(./getmaj Scanner) 0
+[?2004h]0;idiot@punching-bag: ~/os/driversity/Hello[01;32midiot@punching-bag[00m:[01;34m~/os/driversity/Hello[00m$ ./ScannerTest 
+[?2004l[PASS] empty input returns end-of-data
+[PASS] single token returns data then 0 then -1
+[PASS] multiple tokens with colon separators
+[PASS] leading and trailing separators are skipped
+[PASS] repeated separators do not create empty tokens
+[PASS] no separators present yields one token
+[PASS] empty separator set makes whole input one token
+[PASS] small reads split a token across calls
+[PASS] read size 1 still gives one zero between tokens
+[PASS] input containing only separators has no tokens
+[PASS] separator replacement can be changed later
+[PASS] multiple writes reset data and scan position
+[PASS] separator update affects only one write
+[PASS] each open file descriptor has independent state
+
+Summary: 14/14 tests passed
+[?2004h]0;idiot@punching-bag: ~/os/driversity/Hello[01;32midiot@punching-bag[00m:[01;34m~/os/driversity/Hello[00m$ make try
+[?2004l./TryScanner
+input> a:b:c
+a
+b
+c
+input> hello
+hello
+input> ^Cmake: *** [Makefile:31: try] Interrupt
+
+[?2004h]0;idiot@punching-bag: ~/os/driversity/Hello[01;32midiot@punching-bag[00m:[01;34m~/os/driversity/Hello[00m$ make valgrind
+[?2004lvalgrind --leak-check=full --show-leak-kinds=all --track-origins=yes ./ScannerTest
+==8061== Memcheck, a memory error detector
+==8061== Copyright (C) 2002-2024, and GNU GPL'd, by Julian Seward et al.
+==8061== Using Valgrind-3.24.0 and LibVEX; rerun with -h for copyright info
+==8061== Command: ./ScannerTest
+==8061== 
+[PASS] empty input returns end-of-data
+[PASS] single token returns data then 0 then -1
+[PASS] multiple tokens with colon separators
+[PASS] leading and trailing separators are skipped
+[PASS] repeated separators do not create empty tokens
+[PASS] no separators present yields one token
+[PASS] empty separator set makes whole input one token
+[PASS] small reads split a token across calls
+[PASS] read size 1 still gives one zero between tokens
+[PASS] input containing only separators has no tokens
+[PASS] separator replacement can be changed later
+[PASS] multiple writes reset data and scan position
+[PASS] separator update affects only one write
+[PASS] each open file descriptor has independent state
+
+Summary: 14/14 tests passed
+==8061== 
+==8061== HEAP SUMMARY:
+==8061==     in use at exit: 0 bytes in 0 blocks
+==8061==   total heap usage: 1 allocs, 1 frees, 1,024 bytes allocated
+==8061== 
+==8061== All heap blocks were freed -- no leaks are possible
+==8061== 
+==8061== For lists of detected and suppressed errors, rerun with: -s
+==8061== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+[?2004h]0;idiot@punching-bag: ~/os/driversity/Hello[01;32midiot@punching-bag[00m:[01;34m~/os/driversity/Hello[00m$ du[K[Ksudo dmesg | tail -b[Kn 30[C[C[C[C[C[C[C[C[1@ [1@|[C[1@ [1P[1P[1@g[1@r[1@e[1@p[C[1@ [1@S[1@c[1@a[1@n[1@n[1@e[1@r[C[1@ [1@|[C[1@ [1@e[1@g[1@r[1@e[1@p[C[1@ [1@'[1@r[1@e[1@a[1@d[1@|[1@w[1@r[1@i[1@t[1@e[1@'[1P[1P[1P[1P[1P[1P[1P[1P[1P[1P[1@o[1@p[1@e[1@n[1@|[1@i[1@o[1@c[1@t[1@l[1@|[1@w[1@r[1@i[1@t[1@e
+[?2004lgrep: tail: No such file or directory
+grep: 30: No such file or directory
+[?2004h]0;idiot@punching-bag: ~/os/driversity/Hello[01;32midiot@punching-bag[00m:[01;34m~/os/driversity/Hello[00m$ sudo dmesg | grep Scanner | egrep 'open|ioctl|write' tail -n 30[1@|[1@ 
+[?2004l[ 7929.337497] Scanner: write enter count=5 mode=data data_len=0 separators_len=2 cursor=0 token_active=0
+[ 7929.337499] Scanner: write exit mode=data count=5 data_len=5 separators_len=2 cursor=0 token_active=0
+[ 7929.337727] Scanner: open data_len=0 separators_len=6 cursor=0 token_active=0
+[ 7929.337908] Scanner: ioctl cmd=0 arg=0 next_write_sets_separators=1 data_len=0 separators_len=6
+[ 7929.337915] Scanner: write enter count=1 mode=separators data_len=0 separators_len=6 cursor=0 token_active=0
+[ 7929.337918] Scanner: write exit mode=separators count=1 data_len=0 separators_len=1 cursor=0 token_active=0
+[ 7929.338068] Scanner: write enter count=3 mode=data data_len=0 separators_len=1 cursor=0 token_active=0
+[ 7929.338071] Scanner: write exit mode=data count=3 data_len=3 separators_len=1 cursor=0 token_active=0
+[ 7929.338509] Scanner: write enter count=5 mode=data data_len=3 separators_len=1 cursor=1 token_active=0
+[ 7929.338513] Scanner: write exit mode=data count=5 data_len=5 separators_len=1 cursor=0 token_active=0
+[ 7929.342046] Scanner: open data_len=0 separators_len=6 cursor=0 token_active=0
+[ 7929.342231] Scanner: ioctl cmd=0 arg=0 next_write_sets_separators=1 data_len=0 separators_len=6
+[ 7929.342239] Scanner: write enter count=1 mode=separators data_len=0 separators_len=6 cursor=0 token_active=0
+[ 7929.342242] Scanner: write exit mode=separators count=1 data_len=0 separators_len=1 cursor=0 token_active=0
+[ 7929.342391] Scanner: write enter count=3 mode=data data_len=0 separators_len=1 cursor=0 token_active=0
+[ 7929.342394] Scanner: write exit mode=data count=3 data_len=3 separators_len=1 cursor=0 token_active=0
+[ 7929.342550] Scanner: write enter count=1 mode=data data_len=3 separators_len=1 cursor=0 token_active=0
+[ 7929.342553] Scanner: write exit mode=data count=1 data_len=1 separators_len=1 cursor=0 token_active=0
+[ 7929.343363] Scanner: open data_len=0 separators_len=6 cursor=0 token_active=0
+[ 7929.343461] Scanner: open data_len=0 separators_len=6 cursor=0 token_active=0
+[ 7929.343661] Scanner: ioctl cmd=0 arg=0 next_write_sets_separators=1 data_len=0 separators_len=6
+[ 7929.343672] Scanner: write enter count=1 mode=separators data_len=0 separators_len=6 cursor=0 token_active=0
+[ 7929.343675] Scanner: write exit mode=separators count=1 data_len=0 separators_len=1 cursor=0 token_active=0
+[ 7929.343811] Scanner: ioctl cmd=0 arg=0 next_write_sets_separators=1 data_len=0 separators_len=6
+[ 7929.343818] Scanner: write enter count=1 mode=separators data_len=0 separators_len=6 cursor=0 token_active=0
+[ 7929.343821] Scanner: write exit mode=separators count=1 data_len=0 separators_len=1 cursor=0 token_active=0
+[ 7929.343955] Scanner: write enter count=5 mode=data data_len=0 separators_len=1 cursor=0 token_active=0
+[ 7929.343958] Scanner: write exit mode=data count=5 data_len=5 separators_len=1 cursor=0 token_active=0
+[ 7929.344086] Scanner: write enter count=5 mode=data data_len=0 separators_len=1 cursor=0 token_active=0
+[ 7929.344090] Scanner: write exit mode=data count=5 data_len=5 separators_len=1 cursor=0 token_active=0
+[?2004h]0;idiot@punching-bag: ~/os/driversity/Hello[01;32midiot@punching-bag[00m:[01;34m~/os/driversity/Hello[00m$ exit
+[?2004lexit
+
+Script done on 2026-04-27 18:28:50-06:00 [COMMAND_EXIT_CODE="0"]
