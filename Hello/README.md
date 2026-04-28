@@ -20,6 +20,7 @@ From `hw5/Hello`:
 make
 make TryScanner
 make ScannerTest
+make valgrind
 ```
 
 ## Load On The VM
@@ -29,7 +30,7 @@ sudo make install
 ls -l /dev/Scanner
 ```
 
-This assignment is only loaded and tested on the VirtualBox VM, not on the
+This assignment is only loaded and tested on a VirtualBox VM, not on the
 host machine.
 
 ## Unload
@@ -87,6 +88,12 @@ Or:
 make test
 ```
 
+To run the user-space test harness under Valgrind on the VM:
+
+```sh
+make valgrind
+```
+
 The suite covers:
 
 - empty input
@@ -118,6 +125,7 @@ make
 make ScannerTest
 sudo make install
 ./ScannerTest
+make valgrind
 sudo dmesg | tail -n 80
 ```
 
