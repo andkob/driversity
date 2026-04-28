@@ -24,5 +24,11 @@ uninstall:
 TryScanner: TryScanner.c
 	gcc -o $@ $< -Wall -g
 
+ScannerTest: ScannerTest.c
+	gcc -o $@ $< -Wall -Wextra -g
+
 try: TryScanner
+	./$<
+
+test: ScannerTest
 	./$<
