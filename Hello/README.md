@@ -116,26 +116,8 @@ The important pattern each case verifies is:
 - exactly one `0` at end-of-token
 - `-1` at end-of-data
 
-## Suggested Proof For Grading
-
-To demonstrate correctness clearly in the VM, capture:
-
-```sh
-make
-make ScannerTest
-sudo make install
-./ScannerTest
-make valgrind
-sudo dmesg | tail -n 80
-```
-
-Useful screenshots/logs:
-
-- one screenshot of the full `./ScannerTest` PASS summary
-- one screenshot or pasted log showing a chunked-read case succeeding
-- one screenshot of `dmesg` showing `read enter` / `read exit` around a token
-  boundary, especially a case where the driver returns token bytes, then `0`,
-  then `-1`
+## VM Transcript
+[View Transcript File](./hw5-transcript.txt)
 
 ## Demo
 ![vm-demo](./img/hw5-demo.png)
